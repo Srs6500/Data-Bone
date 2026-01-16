@@ -3,6 +3,7 @@
 export interface CourseInfo {
   courseCode: string;
   institution: string;
+  courseName?: string; // Optional: Course name for better RAG semantic matching
   courseType: 'prerequisite' | 'core' | 'elective' | 'advanced';
   learningGoal: 'pass_exam' | 'ace_assignment' | 'understand' | 'all';
   currentLevel: 'beginner' | 'intermediate' | 'advanced';

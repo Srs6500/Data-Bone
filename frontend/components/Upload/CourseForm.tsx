@@ -51,6 +51,23 @@ export default function CourseForm({ courseInfo, onCourseInfoChange }: CourseFor
           />
         </div>
 
+        {/* Course Name (Optional) */}
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Course Name <span className="text-gray-500 text-xs">(Optional)</span>
+          </label>
+          <input
+            type="text"
+            value={courseInfo.courseName || ''}
+            onChange={(e) => handleChange('courseName', e.target.value)}
+            placeholder="e.g., Introduction to Computer Science"
+            className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          />
+          <p className="mt-1 text-xs text-gray-500">
+            Helps improve analysis accuracy by providing semantic context
+          </p>
+        </div>
+
         {/* Course Type */}
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
