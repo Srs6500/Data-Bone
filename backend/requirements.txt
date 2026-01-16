@@ -9,21 +9,26 @@ pdfplumber==0.10.3
 pymupdf==1.23.8
 
 # AI/ML Libraries - Gemini/Vertex AI
-langchain==0.0.350
-langchain-google-vertexai==0.0.1
-google-cloud-aiplatform==1.38.1
-sentence-transformers>=2.7.0
+langchain>=0.1.0
+langchain-google-vertexai>=1.0.0
+google-cloud-aiplatform>=1.38.1
+google-cloud-storage>=3.0.0
+sentence-transformers>=3.0.0  # Upgraded for security fixes and performance improvements
 huggingface-hub>=0.20.0
 
 # Vector Database
-chromadb==0.4.18
+chromadb==1.4.0  # Latest stable version with HNSW parameter support and performance improvements
 
 # Data Processing
-numpy==1.24.3
-pandas==2.1.3
+numpy>=1.24.3
+pandas>=2.1.3
 
 # Utilities
 python-dotenv==1.0.0
 pydantic==2.5.0
 pydantic-settings==2.1.0
+
+# Datadog Observability
+ddtrace==2.9.0
+datadog==0.47.0
 
