@@ -34,6 +34,7 @@ class CourseInfo(BaseModel):
     """Course information model."""
     course_code: str = Field(..., description="Course code (e.g., CS 101)")
     institution: str = Field(..., description="Institution name")
+    course_name: Optional[str] = Field(None, description="Course name (e.g., Introduction to Computer Science) - optional for better RAG semantic matching")
     course_type: CourseType = Field(..., description="Type of course")
     learning_goal: LearningGoal = Field(..., description="Primary learning goal")
     current_level: CurrentLevel = Field(..., description="Student's current level")
@@ -54,6 +55,7 @@ class DocumentExtraction(BaseModel):
     metadata: DocumentMetadata = Field(default_factory=DocumentMetadata)
     total_pages: int = 0
     chunks: List[str] = Field(default_factory=list, description="Text chunks for embedding")
+    chunk_data: List[Dict] = Field(default_factory=list, description="Chunk data with page numbers")
 
 
 class Document(BaseModel):

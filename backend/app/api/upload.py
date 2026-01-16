@@ -55,6 +55,7 @@ async def upload_document(
             course_info = CourseInfo(
                 course_code=course_info_dict.get('courseCode', ''),
                 institution=course_info_dict.get('institution', ''),
+                course_name=course_info_dict.get('courseName'),  # Optional field - None if not provided
                 course_type=CourseType(course_info_dict.get('courseType', 'prerequisite')),
                 learning_goal=LearningGoal(course_info_dict.get('learningGoal', 'pass_exam')),
                 current_level=CurrentLevel(course_info_dict.get('currentLevel', 'intermediate'))

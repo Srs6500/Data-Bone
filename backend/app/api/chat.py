@@ -1,6 +1,8 @@
 """
 API routes for chat functionality.
 """
+import time
+import re
 from fastapi import APIRouter, HTTPException
 from typing import Dict, List, Optional
 from pydantic import BaseModel
@@ -8,6 +10,7 @@ from pydantic import BaseModel
 from app.services.gap_service import GapService
 from app.ai.llm_service import LLMService
 from app.api.analyze import get_document, documents_store
+from app.monitoring import monitor
 
 router = APIRouter()
 
@@ -66,8 +69,19 @@ async def chat_with_document(request: ChatRequest):
     Returns:
         Chat response from AI
     """
+    chat_start_time = time.time()
+    has_gap_context = bool((request.gap_concepts and len(request.gap_concepts) > 0) or request.gap_concept)
+    
     try:
         document_id = request.document_id
+        
+        # Track chat session start
+        monitor.track_chat_session(
+            document_id=document_id,
+            has_gap_context=has_gap_context,
+            gap_count=len(request.gap_concepts) if request.gap_concepts else (1 if request.gap_concept else 0),
+            filter_type=request.filter_type
+        )
         
         # Get document from store
         document = get_document(document_id)
@@ -95,7 +109,7 @@ async def chat_with_document(request: ChatRequest):
             document_context = gap_service.get_gaps_context(
                 gap_concepts=request.gap_concepts,
                 document_id=document_id,
-                max_chars=8000  # Generous context window for multiple concepts
+                max_chars=15000  # Increased context window to support 20+ gaps
             )
         elif request.gap_concept:
             # Legacy: single gap concept
@@ -117,6 +131,11 @@ async def chat_with_document(request: ChatRequest):
                 "role": msg.role,
                 "content": msg.content
             })
+        
+        # Detect if this is an exam question generation request
+        is_exam_question_request = bool(
+            re.search(r'\b(exam|test|quiz|question|practice|problem|exercise)\b', request.message, re.IGNORECASE)
+        )
         
         # Build system prompt based on context and filter type
         system_prompt = None
@@ -147,36 +166,82 @@ async def chat_with_document(request: ChatRequest):
 
 The student needs help with these concepts: {concepts_list}
 
-Your role:
+Your role as a gap-finding tutor:
 1. Start by explaining these concepts clearly and simply
-2. Relate explanations to their specific course materials and document context
-3. Provide examples from their document when possible
-4. Be encouraging and supportive
-5. Break down complex ideas into digestible steps
-6. Answer any questions they have - don't restrict yourself to only these concepts
+2. Identify and explain the "gaps" in their understanding - not just the formula, but:
+   - The "Why" gap: Why does this concept/formula work? What's the underlying principle?
+   - The "When" gap: When does this apply? When does it fail? What are the exceptions?
+   - The "Detail" gap: What are the subtle but important details (like the +C in integration)?
+   - The "Geometric/Visual" gap: What does this mean visually or geometrically?
+   - The "Connection" gap: How does this relate to other concepts in their materials?
+3. Relate explanations to their specific course materials and document context
+4. Provide examples from their document when possible
+5. Be encouraging and supportive
+6. Break down complex ideas into digestible steps
+7. Answer any questions they have - don't restrict yourself to only these concepts
 
-IMPORTANT: While you should prioritize explaining the concepts listed above, the student can ask about ANYTHING related to their document. Be helpful and comprehensive in your responses.
+IMPORTANT: While you should prioritize explaining the concepts listed above, the student can ask about ANYTHING related to their document. Be helpful and comprehensive in your responses. Your goal is to help them truly understand, not just memorize formulas.
 
-Use the document context provided to give specific, relevant explanations."""
+Use the document context provided to give specific, relevant explanations that fill knowledge gaps."""
         else:
             # General chat (no specific gap context)
             system_prompt = """You are a helpful tutor assisting a student with their course materials.
 
-Your role:
+Your role as a gap-finding tutor:
 1. Answer questions clearly and accurately using the document context
-2. Be encouraging and supportive
-3. Provide examples from their document when relevant
-4. Help them understand concepts step by step
+2. When explaining concepts, identify and fill knowledge gaps:
+   - Explain the "why" behind formulas and concepts
+   - Explain when rules apply and when they fail (exceptions)
+   - Point out important details that are easy to miss
+   - Provide geometric/visual interpretations when helpful
+   - Connect concepts to other topics in their materials
+3. Be encouraging and supportive
+4. Provide examples from their document when relevant
+5. Help them understand concepts step by step
+6. Be comprehensive - help them truly understand, not just memorize
 
-Use the document context provided to give specific, relevant answers."""
+Use the document context provided to give specific, relevant answers that address knowledge gaps."""
         
         # Get LLM service and generate response
         llm = get_llm_service()
+        response_start_time = time.time()
         response_text = llm.chat_with_context(
             user_message=request.message,
             conversation_history=conversation_history,
             document_context=document_context,
             system_prompt=system_prompt
+        )
+        response_duration = time.time() - response_start_time
+        
+        # Detect incomplete responses (ends mid-sentence, no punctuation, very short)
+        is_incomplete = (
+            len(response_text) < 50 or  # Very short response
+            (not response_text.strip().endswith(('.', '!', '?', ':', ';')) and len(response_text) > 100) or  # No ending punctuation
+            response_text.count('.') < 2 and len(response_text) > 200  # Very few sentences for long response
+        )
+        
+        # Track chat message metrics
+        monitor.track_chat_message(
+            document_id=document_id,
+            response_length=len(response_text),
+            response_duration=response_duration,
+            context_size=len(document_context),
+            message_count=len(conversation_history) + 1,  # +1 for current message
+            is_incomplete=is_incomplete,
+            is_exam_question_request=is_exam_question_request,
+            has_gap_context=has_gap_context
+        )
+        
+        # Track exam question generation if detected
+        if is_exam_question_request:
+            # Estimate question count from response (look for numbered questions or question marks)
+            question_count = max(1, response_text.count('?') // 2)  # Rough estimate
+            monitor.track_exam_question_generation(
+                document_id=document_id,
+                gap_concepts=concepts_to_explain,
+                question_count=question_count,
+                generation_duration=response_duration,
+                success=True
         )
         
         return ChatResponse(
@@ -188,6 +253,18 @@ Use the document context provided to give specific, relevant answers."""
         raise
     except Exception as e:
         print(f"Error in chat endpoint: {e}")
+        # Track failed chat request
+        if has_gap_context:
+            monitor.track_chat_message(
+                document_id=document_id if 'document_id' in locals() else 'unknown',
+                response_length=0,
+                response_duration=time.time() - chat_start_time,
+                context_size=0,
+                message_count=0,
+                is_incomplete=True,
+                is_exam_question_request=False,
+                has_gap_context=has_gap_context
+            )
         raise HTTPException(
             status_code=500,
             detail=f"Error processing chat: {str(e)}"

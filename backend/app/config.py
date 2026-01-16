@@ -55,11 +55,18 @@ class Settings(BaseSettings):
     # 5. Gemini 1.5 Flash (final fallback)
     # This prioritizes quality for accurate gap detection and analysis
     temperature: float = 0.3  # Lower for more focused, accurate analysis
-    max_tokens: int = 4096  # Higher limit for longer document analysis
+    max_tokens: int = 4096  # Token limit for gap analysis (shorter responses)
+    max_tokens_chat: int = 8192  # Higher token limit for chat responses (allows complete explanations)
+    
+    # Datadog Settings
+    datadog_enabled: bool = False  # Set to True if DD_API_KEY is provided
+    datadog_service_name: str = "databone-llm"
+    datadog_env: str = "development"
     
     class Config:
         env_file = ".env"
         case_sensitive = False
+        extra = "ignore"  # Ignore extra fields from .env (like DD_API_KEY, DD_ENV)
 
 
 # Create global settings instance
