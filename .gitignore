@@ -19,6 +19,10 @@ backend/chroma_db/
 backend/*.db
 backend/*.sqlite
 backend/.env
+backend/*.json
+backend/diagnose_*.py
+backend/test_*.py
+backend/verify_*.py
 
 # Logs
 logs
