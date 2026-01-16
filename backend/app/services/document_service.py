@@ -91,12 +91,15 @@ class DocumentService:
             # Extract text from PDF
             extraction_result = self.parser.extract_text(document.file_path)
             
-            # Create chunks for embedding
-            chunks = self.parser.chunk_text(
-                extraction_result['text'],
+            # Create chunks with page numbers preserved
+            chunk_data = self.parser.chunk_text_with_pages(
+                extraction_result['pages'],
                 chunk_size=settings.chunk_size,
                 overlap=settings.chunk_overlap
             )
+            
+            # Extract just the text for backward compatibility
+            chunks = [chunk['text'] for chunk in chunk_data]
             
             # Create metadata
             metadata = DocumentMetadata(
@@ -112,7 +115,8 @@ class DocumentService:
                 pages=extraction_result['pages'],
                 metadata=metadata,
                 total_pages=extraction_result['total_pages'],
-                chunks=chunks
+                chunks=chunks,
+                chunk_data=chunk_data  # Store chunk data with page numbers
             )
             
             document.extraction = extraction
