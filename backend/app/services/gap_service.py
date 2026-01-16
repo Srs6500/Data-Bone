@@ -1,7 +1,7 @@
 """
 Gap service for managing gap detection and analysis.
 """
-from typing import List, Dict, Optional
+from typing import List, Dict, Optional, Callable
 from app.ai.gap_detector import GapDetector
 from app.models.document import Document
 from app.services.document_service import DocumentService
@@ -32,12 +32,13 @@ class GapService:
         # This is a placeholder - actual implementation will fetch from DB
         pass
     
-    def get_gaps_for_document(self, document: Document) -> List[Dict]:
+    def get_gaps_for_document(self, document: Document, progress_callback: Optional[Callable[[str, str, Optional[Dict]], None]] = None) -> List[Dict]:
         """
         Get gaps for a specific document.
         
         Args:
             document: Document object
+            progress_callback: Optional callback function(stage, message, data) for progress updates
             
         Returns:
             List of gap dictionaries
@@ -45,10 +46,11 @@ class GapService:
         if not document.processed:
             raise ValueError("Document must be processed before gap detection")
         
-        # Detect gaps
+        # Detect gaps with progress callback
         gaps = self.gap_detector.detect_gaps(
             document=document,
-            course_info=document.course_info
+            course_info=document.course_info,
+            progress_callback=progress_callback
         )
         
         # Add IDs to gaps
