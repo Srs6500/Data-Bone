@@ -12,7 +12,7 @@ pymupdf==1.23.8
 langchain>=0.1.0
 langchain-google-vertexai>=1.0.0
 google-cloud-aiplatform>=1.38.1
-google-cloud-storage>=3.0.0
+google-cloud-storage>=2.18.0,<3.0.0  # Constrained to <3.0.0 for langchain-google-vertexai compatibility
 sentence-transformers>=3.0.0  # Upgraded for security fixes and performance improvements
 huggingface-hub>=0.20.0
 
