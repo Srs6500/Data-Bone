@@ -7,8 +7,6 @@ from fastapi import APIRouter, HTTPException
 from typing import Dict, List, Optional
 from pydantic import BaseModel
 
-from app.services.gap_service import GapService
-from app.ai.llm_service import LLMService
 from app.api.analyze import get_document, documents_store
 from app.monitoring import monitor
 
@@ -23,6 +21,7 @@ def get_llm_service():
     """Get LLM service instance (lazy initialization)."""
     global llm_service
     if llm_service is None:
+        from app.ai.llm_service import LLMService
         llm_service = LLMService()
     return llm_service
 

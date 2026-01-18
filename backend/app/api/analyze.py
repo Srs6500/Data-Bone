@@ -10,20 +10,18 @@ import json
 import asyncio
 import time
 
-from app.services.gap_service import GapService
-from app.services.document_service import DocumentService
 from app.models.document import Document
 from app.monitoring import monitor
 
 router = APIRouter()
-# Initialize services lazily to avoid import-time errors
+# Initialize services lazily to avoid heavy import-time work
 gap_service = None
-document_service = DocumentService()
 
 def get_gap_service():
     """Get gap service instance (lazy initialization)."""
     global gap_service
     if gap_service is None:
+        from app.services.gap_service import GapService
         gap_service = GapService()
     return gap_service
 

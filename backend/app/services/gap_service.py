@@ -2,7 +2,6 @@
 Gap service for managing gap detection and analysis.
 """
 from typing import List, Dict, Optional, Callable
-from app.ai.gap_detector import GapDetector
 from app.models.document import Document
 from app.services.document_service import DocumentService
 
@@ -12,6 +11,7 @@ class GapService:
     
     def __init__(self):
         """Initialize gap service."""
+        from app.ai.gap_detector import GapDetector
         self.gap_detector = GapDetector()
         self.document_service = DocumentService()
     
