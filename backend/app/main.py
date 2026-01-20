@@ -22,9 +22,25 @@ app = FastAPI(
 
 # Configure CORS (Cross-Origin Resource Sharing)
 # This allows the frontend to communicate with the backend
+# Get allowed origins from environment variable or use defaults
+allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
+if allowed_origins_env:
+    allowed_origins = [
+        origin.strip() for origin in allowed_origins_env.split(",") if origin.strip()
+    ]
+else:
+    # Default: localhost for development, or allow all in production
+    allowed_origins = [
+        "https://data-bone.vercel.app",
+        "http://localhost:3000",
+        "http://localhost:3001",
+    ]
+    # In production, you can set ALLOWED_ORIGINS to your Vercel URL
+print(f"✅ CORS allowed origins: {allowed_origins}")
+
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000", "http://localhost:3001"],  # Next.js default ports
+    allow_origins=allowed_origins,
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
